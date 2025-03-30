@@ -1,1 +1,1 @@
-# gateway-server
+# gateway-service

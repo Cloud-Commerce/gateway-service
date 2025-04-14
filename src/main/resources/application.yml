@@ -1,0 +1,78 @@
+spring:
+  application:
+    name: gateway-service
+  cloud:
+    loadbalancer:
+      retry:
+        enabled: true
+        max-retries-on-next-service-instance: 2
+        max-retries-on-same-service-instance: 0
+    gateway:
+      httpclient:
+        connect-timeout: 1000
+        response-timeout: 5s
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        - id: authn-service
+          uri: lb://authn-service
+          predicates:
+            - Path=/auth/**
+          filters:
+            - RewritePath=/auth/(?<segment>.*), /api/auth/$\{segment}
+#            - PreserveHostHeader  # Keeps the original Host header
+
+        - id: user-service
+          uri: lb://user-service
+          predicates:
+            - Path=/users/**
+          filters:
+            - RewritePath=/users/(?<segment>.*), /api/users/$\{segment}
+            - AddRequestHeader=X-Service-ID, ${spring.application.name}
+
+#        - id: product-service
+#          uri: http://product-service:8082
+#          predicates:
+#            - Path=/api/products/**
+#          filters:
+#            - name: RequestHeaderModifier
+#              args:
+#                add:
+#                  - name: X-Forwarded-For
+#                    value: "${remoteAddr}"
+#            - name: CustomAuth
+#              args:
+#                requiredRoles: PRODUCT_READ,PRODUCT_WRITE
+
+#        - id: order-service
+#          uri: http://order-service:8083
+#          predicates:
+#            - Path=/api/orders/**
+#          filters:
+#            - name: CustomAuth
+#              args:
+#                requiredRoles: ORDER_MANAGEMENT
+
+eureka:
+  client:
+    fetch-registry: true
+    register-with-eureka: true
+    serviceUrl:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka} # Discovery Server Address
+  instance:
+    preferIpAddress: true
+    lease-renewal-interval-in-seconds: 5 # Heartbeat interval - DO NOT DO THIS IN PRODUCTION
+server:
+  port: 8502
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  endpoint:
+    health:
+      show-details: always
+    info:
+      access: READ_ONLY

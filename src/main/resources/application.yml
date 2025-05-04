@@ -4,6 +4,15 @@ spring:
   data:
     redis:
       url: ${REDIS_DATASOURCE_URL:redis://localhost:6379}
+  kafka:
+    bootstrap-servers: kafka:9092
+    consumer:
+      group-id: gateway-service-group
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
   cloud:
     loadbalancer:
       retry:
@@ -80,6 +89,9 @@ management:
       show-details: always
     info:
       access: READ_ONLY
+  health:
+    kafka:
+      enabled: true
 app:
   verify:
     session:

@@ -46,7 +46,7 @@ public class TokenSessionManagementService {
     return Mono.justOrEmpty(redisTemplate.opsForValue().get(getVerifiedSessionKey(jti)));
   }
 
-  private static String getVerifiedSessionKey(String jti) {
+  public static String getVerifiedSessionKey(String jti) {
     return String.format("user:session:verify:%s", jti);
   }
 

@@ -1,6 +1,9 @@
 spring:
   application:
     name: gateway-service
+  data:
+    redis:
+      url: ${REDIS_DATASOURCE_URL:redis://localhost:6379}
   cloud:
     loadbalancer:
       retry:
@@ -63,9 +66,10 @@ eureka:
       defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka} # Discovery Server Address
   instance:
     preferIpAddress: true
-    lease-renewal-interval-in-seconds: 5 # Heartbeat interval - DO NOT DO THIS IN PRODUCTION
+    lease-renewal-interval-in-seconds: 5  # Default is 30 (Heartbeat interval) - DO NOT DO THIS IN PRODUCTION
+    lease-expiration-duration-in-seconds: 15  # Default is 90
 server:
-  port: 8502
+  port: 8500
 management:
   endpoints:
     web:
@@ -76,3 +80,7 @@ management:
       show-details: always
     info:
       access: READ_ONLY
+app:
+  verify:
+    session:
+      expiration-ms: 300000  # 5 minutes in milliseconds

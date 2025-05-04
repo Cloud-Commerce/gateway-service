@@ -3,6 +3,7 @@ package edu.ecom.gateway.security.filter;
 import edu.ecom.authz.security.dto.TokenDetails;
 import edu.ecom.authz.security.service.RequiredRoleFinderService;
 import edu.ecom.authz.security.service.RoleBasedAuthorizationService;
+import edu.ecom.gateway.service.TokenSessionManagementService;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -16,14 +17,16 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 @Component
-public class CustomAuthFilter implements GlobalFilter {
+public class AuthFilter implements GlobalFilter {
 
-  private final RoleBasedAuthorizationService authzService; // From your authz-lib
+  private final TokenSessionManagementService sessionManagementService; // From cache
+  private final RoleBasedAuthorizationService authzService; // From authz-lib
   private final RequiredRoleFinderService roleFinderService;
 
   @Autowired
-  public CustomAuthFilter(RoleBasedAuthorizationService authzService,
-      RequiredRoleFinderService roleFinderService) {
+  public AuthFilter(TokenSessionManagementService sessionManagementService,
+      RoleBasedAuthorizationService authzService, RequiredRoleFinderService roleFinderService) {
+    this.sessionManagementService = sessionManagementService;
     this.authzService = authzService;
     this.roleFinderService = roleFinderService;
   }
@@ -45,9 +48,10 @@ public class CustomAuthFilter implements GlobalFilter {
 
     String token = authHeader.split(" ")[1];
 
-//     Validate authHeader using your authz-lib
-    Mono<TokenDetails> authorizedClaims = authzService.getAuthorizedClaims(token,
-        roleFinderService.getRequiredRoleForRoute(path));
+//     Validate authHeader using authz-lib
+    Mono<TokenDetails> authorizedClaims = sessionManagementService.fetchSession(token)
+        .doOnNext(tokenDetails -> authzService.hasRole(Mono.just(tokenDetails), roleFinderService.getRequiredRoleForRoute(path)))
+        .doOnError(e -> serverError(exchange, "Authentication service error: " + e.getMessage()));
     return authorizedClaims
         .flatMap(tokenDetails -> {
           if (!tokenDetails.isGenuine()) {
@@ -92,12 +96,12 @@ public class CustomAuthFilter implements GlobalFilter {
   }
 
   private Mono<Void> forbidden(ServerWebExchange exchange, String message) {
-    // Similar to unauthorized but with 403 status
+    // Similar to unauthorized but with status 403
     return unauthorized(exchange, message);
   }
 
   private Mono<Void> serverError(ServerWebExchange exchange, String message) {
-    // Similar to unauthorized but with 503 status
+    // Similar to unauthorized but with status 503
     return unauthorized(exchange, message);
   }
 }
